@@ -101,7 +101,29 @@ public:
         QAction* aboutAction = new QAction("Про програму", this);
         helpMenu->addAction(aboutAction);
 
+        QWidget* central_widget = new QWidget(this);
+        main_layout = new QVBoxLayout(central_widget);
 
+
+        appsTable = new UsageTableWidget(UsageTableWidget::Desktop, central_widget);
+        appsTable->setHorizontalHeaderLabels({ "Application", "Time Spent", "Current opened", "Remove" });
+        main_layout->addWidget(new QLabel("Applications", this));
+        main_layout->addWidget(appsTable);
+
+
+        // Новый виджет и макет для веб-приложений
+        QWidget* webAppsWidget = new QWidget(this);
+        QVBoxLayout* webAppsLayout = new QVBoxLayout(webAppsWidget);
+
+        webAppsTable = new UsageTableWidget(UsageTableWidget::Web, central_widget);
+        webAppsTable->setHorizontalHeaderLabels({ "Web Application", "Time Spent", "Current opened", "Remove" });
+        webAppsLayout->addWidget(new QLabel("Web Applications", this));
+        webAppsLayout->addWidget(webAppsTable);
+
+
+        main_layout->addWidget(webAppsWidget);
+
+        setCentralWidget(central_widget);
 
         // Підключення слоту ShowAboutDialog
         connect(aboutAction, &QAction::triggered, this, &AppUsageMonitor::TextAboutDialog2);
@@ -128,31 +150,6 @@ public:
                 this, &AppUsageMonitor::handleRemoveRequest);
         connect(webAppsTable, &UsageTableWidget::removeRequested,
                 this, &AppUsageMonitor::handleRemoveRequest);
-
-
-        QWidget* central_widget = new QWidget(this);
-        main_layout = new QVBoxLayout(central_widget);
-
-
-        appsTable = new UsageTableWidget(UsageTableWidget::Desktop, central_widget);
-        appsTable->setHorizontalHeaderLabels({ "Application", "Time Spent", "Current opened", "Remove" });
-        main_layout->addWidget(new QLabel("Applications", this));
-        main_layout->addWidget(appsTable);
-
-
-        // Новый виджет и макет для веб-приложений
-        QWidget* webAppsWidget = new QWidget(this);
-        QVBoxLayout* webAppsLayout = new QVBoxLayout(webAppsWidget);
-
-        webAppsTable = new UsageTableWidget(UsageTableWidget::Web, central_widget);
-        webAppsTable->setHorizontalHeaderLabels({ "Web Application", "Time Spent", "Current opened", "Remove" });
-        webAppsLayout->addWidget(new QLabel("Web Applications", this));
-        webAppsLayout->addWidget(webAppsTable);
-
-
-        main_layout->addWidget(webAppsWidget);
-
-        setCentralWidget(central_widget);
 
         elapsedTimer.start();
 
@@ -579,7 +576,6 @@ private:
     }
 
 
-    // Весь вміст UpdateUI() можна замінити на:
     void UpdateUI()
     {
         if (isFirstRun) {
@@ -592,8 +588,24 @@ private:
         GetWindowTextA(hwnd, window_title, sizeof(window_title));
         QString activeWindow = QString::fromLocal8Bit(window_title);
 
+        // Зберігаємо стан сортування перед оновленням
+        int appsSortColumn = appsTable->horizontalHeader()->sortIndicatorSection();
+        Qt::SortOrder appsSortOrder = appsTable->horizontalHeader()->sortIndicatorOrder();
+
+        int webAppsSortColumn = webAppsTable->horizontalHeader()->sortIndicatorSection();
+        Qt::SortOrder webAppsSortOrder = webAppsTable->horizontalHeader()->sortIndicatorOrder();
+
+        // Оновлюємо дані
         appsTable->updateData(data_map, session_data_map, activeWindow);
         webAppsTable->updateData(web_data_map, session_web_data_map, activeWindow);
+
+        // Відновлюємо сортування
+        if (appsSortColumn != -1) {
+            appsTable->sortItems(appsSortColumn, appsSortOrder);
+        }
+        if (webAppsSortColumn != -1) {
+            webAppsTable->sortItems(webAppsSortColumn, webAppsSortOrder);
+        }
     }
 
     bool isWebApplication(const QString& appName) {
