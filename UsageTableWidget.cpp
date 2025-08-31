@@ -153,3 +153,8 @@ QString UsageTableWidget::formatTime(int seconds)
 
     return timeParts.join(" ");
 }
+
+void UsageTableWidget::sortByTimeAscending() { sortItems(1, Qt::AscendingOrder); }
+void UsageTableWidget::sortByTimeDescending() { sortItems(1, Qt::DescendingOrder); }
+void UsageTableWidget::sortByNameAscending() { sortItems(0, Qt::AscendingOrder); }
+void UsageTableWidget::sortByNameDescending() { sortItems(0, Qt::DescendingOrder); }

@@ -22,8 +22,12 @@ public:
 signals:
     void removeRequested(const QString &appName, bool permanent);
 
-private slots:
+public slots:
     void handleRemoveButtonClicked();
+    void sortByTimeAscending();
+    void sortByTimeDescending();
+    void sortByNameAscending();
+    void sortByNameDescending();
 
 private:
     TableType m_tableType;

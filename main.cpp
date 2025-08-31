@@ -110,10 +110,14 @@ public:
         connect(toggleNightModeAction, &QAction::triggered, this, &AppUsageMonitor::applyNightMode);
         connect(toggleLightModeAction, &QAction::triggered, this, &AppUsageMonitor::applyLightMode);
 
-        connect(sortAscAction, &QAction::triggered, this, &AppUsageMonitor::SortByTimeAscending);
-        connect(sortDescAction, &QAction::triggered, this, &AppUsageMonitor::SortByTimeDescending);
-        connect(sortAlphaAscAction, &QAction::triggered, this, &AppUsageMonitor::SortByNameAscending);
-        connect(sortAlphaDescAction, &QAction::triggered, this, &AppUsageMonitor::SortByNameDescending);
+        connect(sortAscAction, &QAction::triggered, appsTable, &UsageTableWidget::sortByTimeAscending);
+        connect(sortAscAction, &QAction::triggered, webAppsTable, &UsageTableWidget::sortByTimeAscending);
+        connect(sortDescAction, &QAction::triggered, appsTable, &UsageTableWidget::sortByTimeDescending);
+        connect(sortDescAction, &QAction::triggered, webAppsTable, &UsageTableWidget::sortByTimeDescending);
+        connect(sortAlphaAscAction, &QAction::triggered, appsTable, &UsageTableWidget::sortByNameAscending);
+        connect(sortAlphaAscAction, &QAction::triggered, webAppsTable, &UsageTableWidget::sortByNameAscending);
+        connect(sortAlphaDescAction, &QAction::triggered, appsTable, &UsageTableWidget::sortByNameDescending);
+        connect(sortAlphaDescAction, &QAction::triggered, webAppsTable, &UsageTableWidget::sortByNameDescending);
 
         connect(openExel, &QAction::triggered, this, &AppUsageMonitor::OpenExcel);
         connect(openLibreAction, &QAction::triggered, this, &AppUsageMonitor::OpenLibreOfficeCalc);
@@ -126,14 +130,11 @@ public:
                 this, &AppUsageMonitor::handleRemoveRequest);
 
 
-
         QWidget* central_widget = new QWidget(this);
         main_layout = new QVBoxLayout(central_widget);
 
 
-        appsTable = new UsageTableWidget(UsageTableWidget::Desktop, this);
-
-
+        appsTable = new UsageTableWidget(UsageTableWidget::Desktop, central_widget);
         appsTable->setHorizontalHeaderLabels({ "Application", "Time Spent", "Current opened", "Remove" });
         main_layout->addWidget(new QLabel("Applications", this));
         main_layout->addWidget(appsTable);
@@ -143,7 +144,7 @@ public:
         QWidget* webAppsWidget = new QWidget(this);
         QVBoxLayout* webAppsLayout = new QVBoxLayout(webAppsWidget);
 
-          webAppsTable = new UsageTableWidget(UsageTableWidget::Web, this);
+        webAppsTable = new UsageTableWidget(UsageTableWidget::Web, central_widget);
         webAppsTable->setHorizontalHeaderLabels({ "Web Application", "Time Spent", "Current opened", "Remove" });
         webAppsLayout->addWidget(new QLabel("Web Applications", this));
         webAppsLayout->addWidget(webAppsTable);
@@ -548,26 +549,6 @@ private slots:
         resize(800, 600);
     }
 
-    void SortByTimeAscending() {
-        appsTable->sortItems(1, Qt::AscendingOrder);
-        webAppsTable->sortItems(1, Qt::AscendingOrder);
-    }
-
-    void SortByTimeDescending() {
-        appsTable->sortItems(1, Qt::DescendingOrder);
-        webAppsTable->sortItems(1, Qt::DescendingOrder);
-    }
-
-    void SortByNameAscending() {
-        appsTable->sortItems(0, Qt::AscendingOrder);
-        webAppsTable->sortItems(0, Qt::AscendingOrder);
-    }
-
-    void SortByNameDescending() {
-        appsTable->sortItems(0, Qt::DescendingOrder);
-        webAppsTable->sortItems(0, Qt::DescendingOrder);
-    }
-
 signals:
     void stopTrackingApp(const QString& appName);
 
@@ -614,34 +595,6 @@ private:
         appsTable->updateData(data_map, session_data_map, activeWindow);
         webAppsTable->updateData(web_data_map, session_web_data_map, activeWindow);
     }
-
-    QString formatTime(int seconds) {
-        int days = seconds / 86400;
-        seconds %= 86400;
-        int hours = seconds / 3600;
-        seconds %= 3600;
-        int minutes = seconds / 60;
-        seconds %= 60;
-
-        QStringList timeParts;
-
-        if (days > 0) {
-            timeParts << QString::number(days) + " дн";
-        }
-        if (hours > 0) {
-            timeParts << QString::number(hours) + " год";
-        }
-        if (minutes > 0) {
-            timeParts << QString::number(minutes) + " мин";
-        }
-        if (seconds > 0 || timeParts.isEmpty()) {
-            timeParts << QString::number(seconds) + " сек";
-        }
-
-        return timeParts.join(" ");
-    }
-
-
 
     bool isWebApplication(const QString& appName) {
         return appName.contains("Chrome") || appName.contains("Firefox") || appName.contains("Edge") || appName.contains("Safari");
