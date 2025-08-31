@@ -7,10 +7,9 @@
 
 bool aboutDialogOpened = false;
 
-// Реалізація InfoWindow
 InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Історія створення та інше");
-    setWindowIcon(QIcon("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-03-25 222406.png"));
+    setWindowIcon(QIcon("C:/Users/fipok/Downloads/175301810.png"));
     resize(800, 600);
 
     // Налаштування загального стилю для вікна та віджетів
@@ -97,7 +96,7 @@ InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Додаємо перше зображення
     QLabel *imageLabel1 = new QLabel(this);
-    QPixmap pixmap1("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-09-08 200002.png");
+    QPixmap pixmap1("C:/Users/fipok/OneDrive/Зображення/Знімки екрана/Знімок екрана 2025-08-31 171706.png");
     if (!pixmap1.isNull()) {
         pixmap1 = pixmap1.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         imageLabel1->setPixmap(pixmap1);
@@ -113,7 +112,7 @@ InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Додаємо друге зображення
     QLabel *imageLabel2 = new QLabel(this);
-    QPixmap pixmap2("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-09-08 203719.png");
+    QPixmap pixmap2("C:/Users/fipok/OneDrive/Зображення/134011126186482559.jpg");
     if (!pixmap2.isNull()) {
         pixmap2 = pixmap2.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         imageLabel2->setPixmap(pixmap2);
@@ -129,7 +128,7 @@ InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Додаємо третє зображення
     QLabel *imageLabel3 = new QLabel(this);
-    QPixmap pixmap3("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-09-09 083745.png");
+    QPixmap pixmap3("C:/Users/fipok/Downloads/download3.png");
     if (!pixmap3.isNull()) {
         pixmap3 = pixmap3.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         imageLabel3->setPixmap(pixmap3);
@@ -145,7 +144,7 @@ InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Додаємо четверте зображення
     QLabel *imageLabel4 = new QLabel(this);
-    QPixmap pixmap4("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-09-09 083745.png");
+    QPixmap pixmap4("C:/Users/fipok/Downloads/download2.png");
     if (!pixmap4.isNull()) {
         pixmap4 = pixmap4.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         imageLabel4->setPixmap(pixmap4);
@@ -161,7 +160,7 @@ InfoWindow::InfoWindow(QWidget *parent) : QMainWindow(parent) {
 
     // Додаємо п'яте зображення
     QLabel *imageLabel5 = new QLabel(this);
-    QPixmap pixmap5("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-09-09 083745.png");
+    QPixmap pixmap5("C:/Users/fipok/Downloads/download.png");
     if (!pixmap5.isNull()) {
         pixmap5 = pixmap5.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         imageLabel5->setPixmap(pixmap5);
@@ -252,10 +251,10 @@ void MyWindow::ShowAboutDialog() {
         aboutDialog->resize(400, 400);
 
         // Встановлюємо іконку для вікна "Про програму"
-        aboutDialog->setWindowIcon(QIcon("Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Постійність_пам'яті.jpg"));
+        aboutDialog->setWindowIcon(QIcon("C:/Users/fipok/Downloads/175301810.png"));
 
         QLabel *imageLabel = new QLabel(aboutDialog);
-        QPixmap pixmap("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Знімок екрана 2024-03-25 222406.png");
+        QPixmap pixmap("C:/Users/fipok/Downloads/175301810.png");
         if (!pixmap.isNull()) {
             pixmap = pixmap.scaled(600, 400, Qt::KeepAspectRatio, Qt::SmoothTransformation);
             imageLabel->setPixmap(pixmap);

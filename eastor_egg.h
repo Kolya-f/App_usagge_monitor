@@ -6,7 +6,6 @@
 #include <QMessageBox>
 #include <QLabel>
 #include<QVBoxLayout>
-//bool aboutDialogOpened =false;     // Прапор, чи відкрите вікно "Про програму"
 
 // Вікно, яке буде відкриватися
 class InfoWindow : public QMainWindow {
@@ -23,7 +22,7 @@ private:
     bool fKeyPressed;           // Прапор для клавіші F
     bool iKeyPressed;           // Прапор для клавіші I
     bool pKeyPressed;           // Прапор для клавіші P
-    //bool aboutDialogOpened =false;     // Прапор, чи відкрите вікно "Про програму"
+
     QMessageBox *aboutDialog;  // Діалогове вікно "Про програму"
 
 public:
