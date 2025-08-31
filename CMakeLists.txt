@@ -9,7 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc")
+
 
 
 # Найти Qt Widgets, Multimedia и MultimediaWidgets
@@ -17,10 +17,10 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Multimedia MultimediaW
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Multimedia MultimediaWidgets)
 
 # Додавання QXlsx бібліотеки для роботи з Excel
-add_subdirectory("D:/Fails/QQtd/libs/QXlsx-master/QXlsx" "${CMAKE_BINARY_DIR}/build_qxlsx")
+add_subdirectory("D:/QXlsx-master/QXlsx" "${CMAKE_BINARY_DIR}/build_qxlsx")
 
 # Підключення директорії з інклудами для QXlsx
-include_directories("D:/Fails/QQtd/libs/QXlsx-master/QXlsx")
+include_directories("D:/QXlsx-master/QXlsx")
 
 # Джерела проекту
 set(PROJECT_SOURCES
@@ -39,6 +39,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         threads.h
         eastor_egg.h
         eastor_egg.cpp
+        UsageTableWidget.h
+        UsageTableWidget.cpp
     )
 else()
     if(ANDROID)

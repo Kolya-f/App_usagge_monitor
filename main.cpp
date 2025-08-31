@@ -31,10 +31,10 @@
 #include<QSettings>
 
 #include"threads.h"
-#include "gradient.h" // Подключаем заголовочный файл для GradientWidget
 #include <windows.h>
 #include "xlsxdocument.h"  // Подключаем QXlsx для Excel
 #include "eastor_egg.h"
+#include "UsageTableWidget.h"
 
 QString tempExcelPath;
 QString tempLibrePath;
@@ -47,7 +47,7 @@ public:
         : QMainWindow(parent), last_active_app(""), last_time_point(QDateTime::currentDateTime()), currentFileName("AppUsageData.xlsx"),isFirstRun(true)
     {
         setWindowTitle("App Usage Monitor");
-        setWindowIcon(QIcon("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Постійність_пам'яті.jpg"));
+        setWindowIcon(QIcon( "C:/Users/fipok/Downloads/OIP.png"));
         resize(800, 600);
 
         applyLightMode();
@@ -101,14 +101,10 @@ public:
         QAction* aboutAction = new QAction("Про програму", this);
         helpMenu->addAction(aboutAction);
 
+
+
         // Підключення слоту ShowAboutDialog
-      connect(aboutAction, &QAction::triggered, this, &AppUsageMonitor::TextAboutDialog2);
-
-
-
-        // Підключення активації перевірки клавіатури
-        // connect(aboutAction, &QAction::triggered, this, &AppUsageMonitor::OpenNewWindow);
-
+        connect(aboutAction, &QAction::triggered, this, &AppUsageMonitor::TextAboutDialog2);
         connect(minimizeAction, &QAction::triggered, this, &AppUsageMonitor::MinimizeWindow);
         connect(maximizeAction, &QAction::triggered, this, &AppUsageMonitor::MaximizeWindow);
         connect(toggleNightModeAction, &QAction::triggered, this, &AppUsageMonitor::applyNightMode);
@@ -124,15 +120,21 @@ public:
         connect(setExcelPathAction, &QAction::triggered, this, &AppUsageMonitor::SetExcelPath);
         connect(setLibrePathAction, &QAction::triggered, this, &AppUsageMonitor::SetLibrePath);
 
+        connect(appsTable, &UsageTableWidget::removeRequested,
+                this, &AppUsageMonitor::handleRemoveRequest);
+        connect(webAppsTable, &UsageTableWidget::removeRequested,
+                this, &AppUsageMonitor::handleRemoveRequest);
 
 
 
         QWidget* central_widget = new QWidget(this);
         main_layout = new QVBoxLayout(central_widget);
 
-        appsTable = new QTableWidget(0, 4, this);
+
+        appsTable = new UsageTableWidget(UsageTableWidget::Desktop, this);
+
+
         appsTable->setHorizontalHeaderLabels({ "Application", "Time Spent", "Current opened", "Remove" });
-        ConfigureTable_UI(appsTable);
         main_layout->addWidget(new QLabel("Applications", this));
         main_layout->addWidget(appsTable);
 
@@ -141,9 +143,8 @@ public:
         QWidget* webAppsWidget = new QWidget(this);
         QVBoxLayout* webAppsLayout = new QVBoxLayout(webAppsWidget);
 
-        webAppsTable = new QTableWidget(0, 4, this);
+          webAppsTable = new UsageTableWidget(UsageTableWidget::Web, this);
         webAppsTable->setHorizontalHeaderLabels({ "Web Application", "Time Spent", "Current opened", "Remove" });
-        ConfigureTable_UI(webAppsTable);
         webAppsLayout->addWidget(new QLabel("Web Applications", this));
         webAppsLayout->addWidget(webAppsTable);
 
@@ -207,60 +208,26 @@ private slots:
         }
     }
 
-
-
-    void HandleRemoveButtonClicked() {
-        QPushButton* button = qobject_cast<QPushButton*>(sender());
-        if (!button) return;
-
-        // Получаем значение свойства "tableType", чтобы определить, какая таблица вызвала событие
-        QString tableType = button->property("tableType").toString();
-
-        // Определяем таблицу на основе свойства "tableType"
-        QTableWidget* table = nullptr;
-        if (tableType == "apps") {
-            table = appsTable;
-        } else if (tableType == "web") {
-            table = webAppsTable;
-        }
-
-        if (!table) return;
-
-        // Получаем индекс строки и имя приложения
-        int row = table->indexAt(button->pos()).row();
-        if (row < 0) return;
-
-        QString appName = table->item(row, 0)->text();
-
-        QMessageBox msgBox;
-        msgBox.setWindowTitle("Видалення");
-        msgBox.setWindowIcon(QIcon("D:/Codes/Qt_projects/App_usage_monitor/build/Desktop_Qt_6_7_2_MinGW_64_bit-Release/Icons/Постійність_пам'яті.jpg"));
-        msgBox.setText("Ви хочете видалити цей елемент?");
-        msgBox.setInformativeText("Виберіть 'Yes' для видалення до наступного відкриття,'No' для видалення назавжди.");
-        msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-        msgBox.setDefaultButton(QMessageBox::Cancel);
-
-        int reply = msgBox.exec();
-
-        if (reply == QMessageBox::No) {
-            // Удалить только на этот сеанс
-            if (table == appsTable) {
-                session_data_map.insert(appName, true); // Временное удаление для десктопных приложений
-            } else if (table == webAppsTable) {
-                session_web_data_map.insert(appName, true); // Временное удаление для веб-приложений
-            }
-        } else if (reply == QMessageBox::Yes) {
-            // Удалить навсегда
-            if (table == appsTable) {
-                data_map.remove(appName);
-            } else if (table == webAppsTable) {
+    void handleRemoveRequest(const QString &appName, bool permanent)
+    {
+        if (isWebApplication(appName)) {
+            if (permanent) {
                 web_data_map.remove(appName);
+                // Видалити з файлу, якщо потрібно
+                SaveAppData(appName); // Можливо, вам потрібно оновити цей метод
+            } else {
+                session_web_data_map.insert(appName, true);
+            }
+        } else {
+            if (permanent) {
+                data_map.remove(appName);
+                SaveAppData(appName);
+            } else {
+                session_data_map.insert(appName, true);
             }
         }
-
         UpdateUI();
     }
-
     void StartTrackingApp(const QString& appName) {
         LoadAppData(appName);
 
@@ -328,13 +295,6 @@ private slots:
 
         file.close();
     }
-
-    // void SaveData() {
-    //     // Ваша логіка збереження даних, наприклад, в CSV, ODS або XLSX
-    //     SaveToLibreOfficeCSV();  // Приклад виклику функції збереження
-
-    //     dataSaved = true;  // Дані успішно збережені
-    // }
 
     void LoadAppData(const QString& appName ) {
         QFile file(currentFileName);
@@ -486,8 +446,6 @@ private slots:
         }
     }
 
-    // "C:\Program Files (x86)\LibreOffice\program\scalc.exe"
-
     // Функція для збереження шляхів назавжди
     void SaveSettings() {
         QSettings settings("MyCompany", "MyApp");
@@ -567,7 +525,6 @@ private slots:
         QXlsx::Document xlsx;
         int row = 1;
 
-        // Перша копія (незмінна) в колонки A та B
         for (auto it = data_map.begin(); it != data_map.end(); ++it) {
             xlsx.write(row, 1, it.key());   // Колонка A
             xlsx.write(row, 2, it.value()); // Колонка B
@@ -580,25 +537,8 @@ private slots:
             row++;
         }
 
-        // Друга копія (редагована) в колонки D та E
-        row = 1; // Починаємо знову з першого рядка
-        for (auto it = data_map.begin(); it != data_map.end(); ++it) {
-            xlsx.write(row, 4, it.key());   // Колонка D
-            xlsx.write(row, 5, it.value()); // Колонка E
-            row++;
-        }
-
-        for (auto it = web_data_map.begin(); it != web_data_map.end(); ++it) {
-            xlsx.write(row, 4, it.key());   // Колонка D
-            xlsx.write(row, 5, it.value()); // Колонка E
-            row++;
-        }
-
-        // Збереження файлу
         xlsx.saveAs(currentFileName);
     }
-
-    //ShowAboutDialog() у easter_egg.cpp
 
     void MinimizeWindow() {
         resize(400, 400);
@@ -633,26 +573,18 @@ signals:
 
 private:
 
- void  clearData() {
-        // Очищення даних
+    void clearData()
+    {
         data_map.clear();
         web_data_map.clear();
         session_data_map.clear();
         session_web_data_map.clear();
 
-        // Очищення таблиць перед додаванням даних
-        if (appsTable != nullptr && appsTable->rowCount() > 0) {
-            appsTable->blockSignals(true);  // Блокуємо сигнали для запобігання зайвим подіям
-            appsTable->clearContents();     // Очищаємо вміст таблиці
-            appsTable->setRowCount(0);      // Встановлюємо кількість рядків у 0
-            appsTable->blockSignals(false); // Розблоковуємо сигнали
+        if (appsTable) {
+            appsTable->setRowCount(0);
         }
-
-        if (webAppsTable != nullptr && webAppsTable->rowCount() > 0) {
-            webAppsTable->blockSignals(true);  // Блокуємо сигнали для запобігання зайвим подіям
-            webAppsTable->clearContents();     // Очищаємо вміст таблиці
-            webAppsTable->setRowCount(0);      // Встановлюємо кількість рядків у 0
-            webAppsTable->blockSignals(false); // Розблоковуємо сигнали
+        if (webAppsTable) {
+            webAppsTable->setRowCount(0);
         }
     }
 
@@ -665,165 +597,22 @@ private:
         process->start(programPath, arguments);
     }
 
-    void ConfigureTable_UI(QTableWidget* table)
+
+    // Весь вміст UpdateUI() можна замінити на:
+    void UpdateUI()
     {
-
-        // Встановлюємо фіксовану ширину для кожного стовпця
-        table->setColumnWidth(0, 200);  // "Application" або "Web Application"
-        table->setColumnWidth(1, 150);  // "Time Spent"
-        table->setColumnWidth(2, 100);   // "Current opened"
-        table->setColumnWidth(3, 50);   // "Remove"
-
-        // Налаштування для розтягування останнього стовпця
-        table->horizontalHeader()->setStretchLastSection(true);
-        table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-
-        // Чергування кольорів рядків
-        table->setAlternatingRowColors(true);
-
-        // Оновлення зовнішнього вигляду таблиці
-        UpdateTableAppearance_UI(table);
-    }
-
-    void UpdateUI() {
         if (isFirstRun) {
             clearData();
             isFirstRun = false;
         }
-
-        appsTable->setRowCount(0);
-        webAppsTable->setRowCount(0);
-
-        QColor foregroundColor(74, 63, 53);
 
         HWND hwnd = GetForegroundWindow();
         char window_title[256];
         GetWindowTextA(hwnd, window_title, sizeof(window_title));
         QString activeWindow = QString::fromLocal8Bit(window_title);
 
-        QMap<QString, int>::iterator i;
-        for (i = data_map.begin(); i != data_map.end(); ++i) {
-            if (!session_data_map.contains(i.key())) {
-                int row = appsTable->rowCount();
-                appsTable->insertRow(row);
-
-                QTableWidgetItem* appItem = new QTableWidgetItem(i.key());
-                QTableWidgetItem* timeItem = new QTableWidgetItem(formatTime(i.value()));
-
-                QTableWidgetItem* statusItem = new QTableWidgetItem("Inactive");
-                if (i.key() == activeWindow) {
-                    statusItem->setText("Active");
-                }
-
-                appItem->setFlags(appItem->flags() & ~Qt::ItemIsEditable);
-                timeItem->setFlags(timeItem->flags() & ~Qt::ItemIsEditable);
-                statusItem->setFlags(statusItem->flags() & ~Qt::ItemIsEditable);
-
-                appItem->setBackground(QColor(209, 199, 183));
-                timeItem->setBackground(QColor(209, 199, 183));
-                statusItem->setBackground(QColor(209, 199, 183));
-
-                appItem->setForeground(foregroundColor);
-                timeItem->setForeground(foregroundColor);
-                statusItem->setForeground(foregroundColor);
-
-                appsTable->setItem(row, 0, appItem);
-                appsTable->setItem(row, 1, timeItem);
-
-                if (i.key() == activeWindow) {
-                    GradientWidget* gradientWidget = new GradientWidget(this);
-                   // set_gradient_design(this);
-                    appsTable->setCellWidget(row, 2, gradientWidget);
-                } else {
-                    appsTable->setItem(row, 2, statusItem);
-                }
-
-                QPushButton* removeButton = new QPushButton("Remove");
-                removeButton->setStyleSheet("background-color: #e36486; color: white;");
-                removeButton->setProperty("tableType", "apps");
-                connect(removeButton, &QPushButton::clicked, this, &AppUsageMonitor::HandleRemoveButtonClicked);
-                appsTable->setCellWidget(row, 3, removeButton);
-            }
-        }
-
-        for (i = web_data_map.begin(); i != web_data_map.end(); ++i) {
-            if (!session_web_data_map.contains(i.key())) {
-                int row = webAppsTable->rowCount();
-                webAppsTable->insertRow(row);
-
-                QTableWidgetItem* webAppItem = new QTableWidgetItem(i.key());
-                QTableWidgetItem* webTimeItem = new QTableWidgetItem(formatTime(i.value()));
-
-                QTableWidgetItem* webStatusItem = new QTableWidgetItem("Inactive");
-                if (i.key() == activeWindow) {
-                    webStatusItem->setText("Active");
-                }
-
-                webAppItem->setFlags(webAppItem->flags() & ~Qt::ItemIsEditable);
-                webTimeItem->setFlags(webTimeItem->flags() & ~Qt::ItemIsEditable);
-                webStatusItem->setFlags(webStatusItem->flags() & ~Qt::ItemIsEditable);
-
-                webAppItem->setBackground(QColor(209, 199, 183));
-                webTimeItem->setBackground(QColor(209, 199, 183));
-                webStatusItem->setBackground(QColor(209, 199, 183));
-
-                webAppItem->setForeground(foregroundColor);
-                webTimeItem->setForeground(foregroundColor);
-                webStatusItem->setForeground(foregroundColor);
-
-                webAppsTable->setItem(row, 0, webAppItem);
-                webAppsTable->setItem(row, 1, webTimeItem);
-
-                if (i.key() == activeWindow) {
-                    GradientWidget* gradientWidget = new GradientWidget(this);
-                    webAppsTable->setCellWidget(row, 2, gradientWidget);
-                } else {
-                    webAppsTable->setItem(row, 2, webStatusItem);
-                }
-
-                QPushButton* removeButton = new QPushButton("Remove");
-                removeButton->setStyleSheet("background-color: #e36486; color: white;");
-                removeButton->setProperty("tableType", "web");
-                connect(removeButton, &QPushButton::clicked, this, &AppUsageMonitor::HandleRemoveButtonClicked);
-                webAppsTable->setCellWidget(row, 3, removeButton);
-            }
-        }
-
-        appsTable->repaint();
-        webAppsTable->repaint();
-    }
-
-    bool isActiveApplication(const QString& appName) {
-        HWND hwnd = GetForegroundWindow();
-        if (!hwnd) {
-            return false;  // Якщо немає активного вікна, додаток не активний
-        }
-
-        // Отримуємо назву активного вікна
-        char windowTitle[256];
-        GetWindowTextA(hwnd, windowTitle, sizeof(windowTitle));
-        QString activeWindowTitle = QString::fromLocal8Bit(windowTitle);
-
-        // Перевіряємо, чи назва активного вікна відповідає назві додатку
-        if (activeWindowTitle.contains(appName, Qt::CaseInsensitive)) {
-            return true;
-        }
-
-        // Додатково можна перевірити, чи процес додатку активний (наприклад, у Windows)
-        DWORD pid;
-        GetWindowThreadProcessId(hwnd, &pid);
-
-        QProcess process;
-        process.start("tasklist", QStringList() << "/FI" << QString("PID eq %1").arg(pid));
-        process.waitForFinished();
-
-        QString output = process.readAllStandardOutput();
-        if (output.contains(appName, Qt::CaseInsensitive)) {
-            return true;
-        }
-
-        // Якщо жодна з умов не виконана, повертаємо false
-        return false;
+        appsTable->updateData(data_map, session_data_map, activeWindow);
+        webAppsTable->updateData(web_data_map, session_web_data_map, activeWindow);
     }
 
     QString formatTime(int seconds) {
@@ -852,38 +641,9 @@ private:
         return timeParts.join(" ");
     }
 
-    void UpdateTableAppearance_UI(QTableWidget* table) {
-        int rowCount = table->rowCount();
-        int columnCount = table->columnCount();
 
-        QColor backgroundColor(209, 199, 183);  // #D1C7B7
-        QColor foregroundColor(74, 63, 53);  // #4A3F35
-
-        for (int row = 0; row < rowCount; ++row) {
-            for (int col = 0; col < columnCount; ++col) {
-                QTableWidgetItem* item = table->item(row, col);
-                if (item) {
-                    item->setBackground(backgroundColor);
-                    item->setForeground(foregroundColor);
-                } else {
-                    item = new QTableWidgetItem();
-                    item->setBackground(backgroundColor);
-                    item->setForeground(foregroundColor);
-                    table->setItem(row, col, item);
-                }
-            }
-        }
-
-        // Налаштування заголовків стовпців
-        QHeaderView* header = table->horizontalHeader();
-        header->setStyleSheet("QHeaderView::section { background-color: #D1C7B7; color: #4A3F35; }");
-
-        // Оновлення після застосування всіх налаштувань
-        table->repaint();
-    }
 
     bool isWebApplication(const QString& appName) {
-        // Проверка, является ли приложение веб-приложением по его названию
         return appName.contains("Chrome") || appName.contains("Firefox") || appName.contains("Edge") || appName.contains("Safari");
     }
 
@@ -893,23 +653,22 @@ private:
     QString excelPath;
     QString librePath;
 
+    UsageTableWidget* appsTable;
+    UsageTableWidget* webAppsTable;
     QVBoxLayout* main_layout;
-    QTableWidget* appsTable;
-    QTableWidget* webAppsTable;
-    QMap<QString, int> data_map; // Десктопные приложения
-    QMap<QString, int> web_data_map; // Веб-приложения
-    QMap<QString, bool> session_data_map; // Временные удаления для десктопных приложений
-    QMap<QString, bool> session_web_data_map; // Временные удаления для веб-приложений
+    QMap<QString, int> data_map;
+    QMap<QString, int> web_data_map;
+    QMap<QString, bool> session_data_map;
+    QMap<QString, bool> session_web_data_map;
     QString last_active_app;
     QDateTime last_time_point;
     QString currentFileName;
     QMap<QString, TimeTracker*> timeTrackers;
-    bool isFirstRun;  // Прапорець для відстеження першого запуску
+    bool isFirstRun;
     QElapsedTimer elapsedTimer;  // Додаємо таймер для точного вимірювання часу
     QTableWidget* tableWidget;
-    // Флаг для перевірки, чи були дані збережені
     bool dataSaved = false;
-     MyWindow window;  // Додаємо екземпляр MyWindow
+     MyWindow window;
 
 };
 
