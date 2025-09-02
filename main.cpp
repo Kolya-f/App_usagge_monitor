@@ -371,64 +371,54 @@ private slots:
         OpenSpreadsheet("librePath", librePath, tempLibrePath, "LibreOffice", "Шлях до LibreOffice");
     }
 
-    // Вибір шляху до Excel з можливістю тимчасового збереження
+    void SetApplicationPath(QString& permanentPath, QString& tempPath,
+                            const QString& dialogTitle, const QString& appName) {
+        QString path = QFileDialog::getOpenFileName(this, dialogTitle, QString(), "Executables (*.exe)");
+        if (!path.isEmpty()) {
+            int reply = QMessageBox::question(this, "Зберегти шлях",
+                                              QString("Бажаєте зберегти цей шлях до %1 назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.").arg(appName),
+                                              QMessageBox::Yes | QMessageBox::No);
+
+            if (reply == QMessageBox::Yes) {
+                permanentPath = path;
+                SaveSettings();
+                QMessageBox::information(this, "Шлях збережено",
+                                         QString("Шлях до %1 збережено назавжди.").arg(appName));
+            } else if (reply == QMessageBox::No) {
+                tempPath = path;
+                QMessageBox::information(this, "Тимчасовий шлях",
+                                         QString("Шлях до %1 збережено до закриття програми.").arg(appName));
+            }
+        }
+    }
+
+    // Використання:
     void SetExcelPath() {
-        QString path = QFileDialog::getOpenFileName(this, "Виберіть Excel", QString(), "Executables (*.exe)");
-        if (!path.isEmpty()) {
-            // Показуємо діалогове вікно з питанням про збереження шляху
-            int reply = QMessageBox::question(this, "Зберегти шлях",
-                                              "Бажаєте зберегти цей шлях до Excel назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.",
-                                              QMessageBox::Yes | QMessageBox::No);
-            if (reply == QMessageBox::Yes) {
-                excelPath = path;  // Зберігаємо шлях назавжди
-                SaveSettings();    // Зберігаємо шлях у налаштування
-                QMessageBox::information(this, "Шлях збережено", "Шлях до Excel збережено назавжди.");
-            } else if (reply == QMessageBox::No) {
-                tempExcelPath = path;  // Зберігаємо тимчасово до закриття програми
-                QMessageBox::information(this, "Тимчасовий шлях", "Шлях до Excel збережено до закриття програми.");
-            }
-        }
+        SetApplicationPath(excelPath, tempExcelPath, "Виберіть Excel", "Excel");
     }
 
-    // Вибір шляху до LibreOffice з можливістю тимчасового збереження
     void SetLibrePath() {
-        QString path = QFileDialog::getOpenFileName(this, "Виберіть LibreOffice", QString(), "Executables (*.exe)");
-        if (!path.isEmpty()) {
-            // Показуємо діалогове вікно з питанням про збереження шляху
-            int reply = QMessageBox::question(this, "Зберегти шлях",
-                                              "Бажаєте зберегти цей шлях до LibreOffice назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.",
-                                              QMessageBox::Yes | QMessageBox::No);
-            if (reply == QMessageBox::Yes) {
-                librePath = path;  // Зберігаємо шлях назавжди
-                SaveSettings();    // Зберігаємо шлях у налаштування
-                QMessageBox::information(this, "Шлях збережено", "Шлях до LibreOffice збережено назавжди.");
-            } else if (reply == QMessageBox::No) {
-                tempLibrePath = path;  // Зберігаємо тимчасово до закриття програми
-                QMessageBox::information(this, "Тимчасовий шлях", "Шлях до LibreOffice збережено до закриття програми.");
-            }
+        SetApplicationPath(librePath, tempLibrePath, "Виберіть LibreOffice", "LibreOffice");
+    }
+
+    // Універсальна функція для отримання шляху
+    QString GetApplicationPath(const QString& tempPath, const QString& permanentPath) {
+        if (!tempPath.isEmpty()) {
+            return tempPath;  // Пріоритет тимчасовому шляху
+        } else if (!permanentPath.isEmpty()) {
+            return permanentPath;  // Постійний шлях
+        } else {
+            return QString();  // Шляхи не встановлені
         }
     }
 
-    // Функція для отримання шляху до Excel
+    // Використання:
     QString GetExcelPath() {
-        if (!tempExcelPath.isEmpty()) {
-            return tempExcelPath;  // Якщо тимчасовий шлях встановлено, використовуємо його
-        } else if (!excelPath.isEmpty()) {
-            return excelPath;  // Якщо постійний шлях встановлено, використовуємо його
-        } else {
-            return QString();  // Якщо шляхи не встановлені, повертаємо порожній рядок
-        }
+        return GetApplicationPath(tempExcelPath, excelPath);
     }
 
-    // Функція для отримання шляху до LibreOffice
     QString GetLibrePath() {
-        if (!tempLibrePath.isEmpty()) {
-            return tempLibrePath;  // Якщо тимчасовий шлях встановлено, використовуємо його
-        } else if (!librePath.isEmpty()) {
-            return librePath;  // Якщо постійний шлях встановлено, використовуємо його
-        } else {
-            return QString();  // Якщо шляхи не встановлені, повертаємо порожній рядок
-        }
+        return GetApplicationPath(tempLibrePath, librePath);
     }
 
     // Функція для збереження шляхів назавжди
