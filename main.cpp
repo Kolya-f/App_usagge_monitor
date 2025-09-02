@@ -322,66 +322,53 @@ private slots:
         file.close();
      }
 
-    void OpenExcel() {
-        // Спочатку завантажуємо налаштування, якщо вони ще не завантажені
-        if (excelPath.isEmpty()) {
-            LoadSettings();  // Завантажуємо збережені налаштування при старті програми
+    void OpenSpreadsheet(const QString& settingsKey,
+                         QString& permanentPath,
+                         QString& tempPath,
+                         const QString& programName,
+                         const QString& title)
+    {
+        // Завантажуємо налаштування, якщо ще не завантажені
+        if (permanentPath.isEmpty()) {
+            LoadSettings();
         }
 
-        QString path = GetExcelPath();  // Використовуємо функцію, яка перевіряє як тимчасовий, так і постійний шлях
+        QString path;
+        if (settingsKey == "excelPath") {
+            path = GetExcelPath();
+        } else if (settingsKey == "librePath") {
+            path = GetLibrePath();
+        }
+
         if (path.isEmpty()) {
-            QMessageBox::warning(this, "Шлях до Excel", "Шлях до Excel не встановлений.");
+            QMessageBox::warning(this, title, QString("Шлях до %1 не встановлений.").arg(programName));
             return;
         }
 
         // Якщо шлях тимчасовий, пропонуємо зберегти його назавжди
-        if (tempExcelPath == path) {
+        if (tempPath == path) {
             int reply = QMessageBox::question(this, "Зберегти шлях",
-                                              "Ви використовуєте тимчасовий шлях до Excel. Бажаєте зберегти його назавжди?",
+                                              QString("Ви використовуєте тимчасовий шлях до %1. Бажаєте зберегти його назавжди?")
+                                                  .arg(programName),
                                               QMessageBox::Yes | QMessageBox::No);
             if (reply == QMessageBox::Yes) {
-                excelPath = tempExcelPath;  // Зберігаємо шлях назавжди
-                SaveSettings();             // Зберігаємо шлях у налаштування
-                QMessageBox::information(this, "Шлях збережено", "Шлях до Excel збережено назавжди.");
+                permanentPath = tempPath;
+                SaveSettings();
+                QMessageBox::information(this, "Шлях збережено",
+                                         QString("Шлях до %1 збережено назавжди.").arg(programName));
             }
         }
 
-        SaveToExcel();  // Зберігаємо дані в Excel
-        LaunchProgram(path, currentFileName);  // Запускаємо Excel з файлом
+        SaveToExcel();
+        LaunchProgram(path, currentFileName);
+    }
+
+    void OpenExcel() {
+        OpenSpreadsheet("excelPath", excelPath, tempExcelPath, "Excel", "Шлях до Excel");
     }
 
     void OpenLibreOfficeCalc() {
-        // Спочатку завантажуємо налаштування, якщо вони ще не завантажені
-        if (librePath.isEmpty()) {
-            LoadSettings();  // Завантажуємо збережені налаштування при старті програми
-        }
-
-        QString path = GetLibrePath();  // Використовуємо функцію, яка перевіряє як тимчасовий, так і постійний шлях
-        if (path.isEmpty()) {
-            QMessageBox::warning(this, "Шлях до LibreOffice", "Шлях до LibreOffice не встановлений.");
-            return;
-        }
-
-        // Якщо шлях тимчасовий, пропонуємо зберегти його назавжди
-        if (tempLibrePath == path) {
-            int reply = QMessageBox::question(this, "Зберегти шлях",
-                                              "Ви використовуєте тимчасовий шлях до LibreOffice. Бажаєте зберегти його назавжди?",
-                                              QMessageBox::Yes | QMessageBox::No);
-            if (reply == QMessageBox::Yes) {
-                librePath = tempLibrePath;  // Зберігаємо шлях назавжди
-                SaveSettings();             // Зберігаємо шлях у налаштування
-                QMessageBox::information(this, "Шлях збережено", "Шлях до LibreOffice збережено назавжди.");
-            }
-        }
-
-        SaveToExcel();  // Зберігаємо дані в Excel
-        LaunchProgram(path, currentFileName);  // Запускаємо LibreOffice з файлом
-    }
-
-
-
-    void ShowHelperWindow(const QString& title, const QString& message) {
-        QMessageBox::information(this, title, message, QMessageBox::Ok);
+        OpenSpreadsheet("librePath", librePath, tempLibrePath, "LibreOffice", "Шлях до LibreOffice");
     }
 
     // Вибір шляху до Excel з можливістю тимчасового збереження
