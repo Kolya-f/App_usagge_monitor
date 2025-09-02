@@ -35,9 +35,7 @@
 #include "xlsxdocument.h"  // Подключаем QXlsx для Excel
 #include "eastor_egg.h"
 #include "UsageTableWidget.h"
-
-QString tempExcelPath;
-QString tempLibrePath;
+#include "jsonconfig.h"
 
 class AppUsageMonitor : public QMainWindow {
     Q_OBJECT
@@ -322,21 +320,12 @@ private slots:
         file.close();
      }
 
-    void OpenSpreadsheet(const QString& settingsKey,
-                         QString& permanentPath,
-                         QString& tempPath,
-                         const QString& programName,
-                         const QString& title)
+    void OpenSpreadsheet(const QString& programName, const QString& title)
     {
-        // Завантажуємо налаштування, якщо ще не завантажені
-        if (permanentPath.isEmpty()) {
-            LoadSettings();
-        }
-
         QString path;
-        if (settingsKey == "excelPath") {
+        if (programName == "Excel") {
             path = GetExcelPath();
-        } else if (settingsKey == "librePath") {
+        } else if (programName == "LibreOffice") {
             path = GetLibrePath();
         }
 
@@ -345,15 +334,22 @@ private slots:
             return;
         }
 
-        // Якщо шлях тимчасовий, пропонуємо зберегти його назавжди
+        // Перевіряємо, чи це тимчасовий шлях
+        QString tempPath = (programName == "Excel") ?
+                               JsonConfig::instance().tempExcelPath() :
+                               JsonConfig::instance().tempLibrePath();
+
         if (tempPath == path) {
             int reply = QMessageBox::question(this, "Зберегти шлях",
                                               QString("Ви використовуєте тимчасовий шлях до %1. Бажаєте зберегти його назавжди?")
                                                   .arg(programName),
                                               QMessageBox::Yes | QMessageBox::No);
             if (reply == QMessageBox::Yes) {
-                permanentPath = tempPath;
-                SaveSettings();
+                if (programName == "Excel") {
+                    JsonConfig::instance().setExcelPath(tempPath);
+                } else {
+                    JsonConfig::instance().setLibrePath(tempPath);
+                }
                 QMessageBox::information(this, "Шлях збережено",
                                          QString("Шлях до %1 збережено назавжди.").arg(programName));
             }
@@ -364,88 +360,75 @@ private slots:
     }
 
     void OpenExcel() {
-        OpenSpreadsheet("excelPath", excelPath, tempExcelPath, "Excel", "Шлях до Excel");
+        OpenSpreadsheet("Excel", "Шлях до Excel");
     }
 
     void OpenLibreOfficeCalc() {
-        OpenSpreadsheet("librePath", librePath, tempLibrePath, "LibreOffice", "Шлях до LibreOffice");
+        OpenSpreadsheet("LibreOffice", "Шлях до LibreOffice");
     }
 
-    void SetApplicationPath(QString& permanentPath, QString& tempPath,
-                            const QString& dialogTitle, const QString& appName) {
-        QString path = QFileDialog::getOpenFileName(this, dialogTitle, QString(), "Executables (*.exe)");
+    void SetExcelPath() {
+        QString path = QFileDialog::getOpenFileName(this, "Виберіть Excel", QString(), "Executables (*.exe)");
         if (!path.isEmpty()) {
             int reply = QMessageBox::question(this, "Зберегти шлях",
-                                              QString("Бажаєте зберегти цей шлях до %1 назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.").arg(appName),
+                                              "Бажаєте зберегти цей шлях до Excel назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.",
                                               QMessageBox::Yes | QMessageBox::No);
 
             if (reply == QMessageBox::Yes) {
-                permanentPath = path;
-                SaveSettings();
-                QMessageBox::information(this, "Шлях збережено",
-                                         QString("Шлях до %1 збережено назавжди.").arg(appName));
+                JsonConfig::instance().setExcelPath(path);
+                QMessageBox::information(this, "Шлях збережено", "Шлях до Excel збережено назавжди.");
             } else if (reply == QMessageBox::No) {
-                tempPath = path;
-                QMessageBox::information(this, "Тимчасовий шлях",
-                                         QString("Шлях до %1 збережено до закриття програми.").arg(appName));
+                JsonConfig::instance().setTempExcelPath(path);
+                QMessageBox::information(this, "Тимчасовий шлях", "Шлях до Excel збережено до закриття програми.");
             }
         }
     }
 
-    // Використання:
-    void SetExcelPath() {
-        SetApplicationPath(excelPath, tempExcelPath, "Виберіть Excel", "Excel");
-    }
-
     void SetLibrePath() {
-        SetApplicationPath(librePath, tempLibrePath, "Виберіть LibreOffice", "LibreOffice");
-    }
+        QString path = QFileDialog::getOpenFileName(this, "Виберіть LibreOffice", QString(), "Executables (*.exe)");
+        if (!path.isEmpty()) {
+            int reply = QMessageBox::question(this, "Зберегти шлях",
+                                              "Бажаєте зберегти цей шлях до LibreOffice назавжди? Натисніть Yes для збереження назавжди або No для збереження до закриття програми.",
+                                              QMessageBox::Yes | QMessageBox::No);
 
-    // Універсальна функція для отримання шляху
-    QString GetApplicationPath(const QString& tempPath, const QString& permanentPath) {
-        if (!tempPath.isEmpty()) {
-            return tempPath;  // Пріоритет тимчасовому шляху
-        } else if (!permanentPath.isEmpty()) {
-            return permanentPath;  // Постійний шлях
-        } else {
-            return QString();  // Шляхи не встановлені
+            if (reply == QMessageBox::Yes) {
+                JsonConfig::instance().setLibrePath(path);
+                QMessageBox::information(this, "Шлях збережено", "Шлях до LibreOffice збережено назавжди.");
+            } else if (reply == QMessageBox::No) {
+                JsonConfig::instance().setTempLibrePath(path);
+                QMessageBox::information(this, "Тимчасовий шлях", "Шлях до LibreOffice збережено до закриття програми.");
+            }
         }
     }
 
-    // Використання:
     QString GetExcelPath() {
-        return GetApplicationPath(tempExcelPath, excelPath);
+        QString tempPath = JsonConfig::instance().tempExcelPath();
+        QString permPath = JsonConfig::instance().excelPath();
+
+        if (!tempPath.isEmpty()) {
+            return tempPath;
+        } else if (!permPath.isEmpty()) {
+            return permPath;
+        } else {
+            return QString();
+        }
     }
 
     QString GetLibrePath() {
-        return GetApplicationPath(tempLibrePath, librePath);
-    }
+        QString tempPath = JsonConfig::instance().tempLibrePath();
+        QString permPath = JsonConfig::instance().librePath();
 
-    // Функція для збереження шляхів назавжди
-    void SaveSettings() {
-        QSettings settings("MyCompany", "MyApp");
-
-        // Зберігаємо постійно шляхи до Excel і LibreOffice
-        if (!excelPath.isEmpty()) {
-            settings.setValue("paths/excel", excelPath);
+        if (!tempPath.isEmpty()) {
+            return tempPath;
+        } else if (!permPath.isEmpty()) {
+            return permPath;
+        } else {
+            return QString();
         }
-
-        if (!librePath.isEmpty()) {
-            settings.setValue("paths/libre", librePath);
-        }
-    }
-
-    // Функція для завантаження шляхів із збережених налаштувань
-    void LoadSettings() {
-        QSettings settings("MyCompany", "MyApp");
-
-        // Завантажуємо постійно збережені шляхи до Excel і LibreOffice
-        excelPath = settings.value("paths/excel", "").toString();
-        librePath = settings.value("paths/libre", "").toString();
     }
 
     void closeEvent(QCloseEvent *event) {
-        SaveSettings();  // Зберігаємо всі налаштування перед закриттям програми
+        JsonConfig::instance().saveSettings();  // Зберігаємо JSON налаштування
         QMainWindow::closeEvent(event);
     }
 
@@ -588,12 +571,6 @@ private:
     bool isWebApplication(const QString& appName) {
         return appName.contains("Chrome") || appName.contains("Firefox") || appName.contains("Edge") || appName.contains("Safari");
     }
-
-
-
-
-    QString excelPath;
-    QString librePath;
 
     UsageTableWidget* appsTable;
     UsageTableWidget* webAppsTable;
